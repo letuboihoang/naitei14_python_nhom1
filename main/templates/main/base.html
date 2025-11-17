@@ -14,7 +14,7 @@
   <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
       <div class="container-fluid">
-        <a class="navbar-brand" href="/"> ⚽ Sân Bóng Online </a>
+        <a class="navbar-brand" href="{% url 'home' %}"> ⚽ Sân Bóng Online </a>
 
         <button
           class="navbar-toggler"
@@ -31,20 +31,20 @@
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav me-auto">
             <li class="nav-item">
-              <a class="nav-link active" aria-current="page" href="/home"
+              <a class="nav-link active" aria-current="page" href="{% url 'home' %}"
                 >Trang Chủ</a
               >
             </li>
 
             <li class="nav-item">
-              <a class="nav-link" href="/pitches">Danh sách Sân</a>
+              <a class="nav-link" href="{% url 'pitch_list' %}">Danh sách Sân</a>
             </li>
           </ul>
 
           <ul class="navbar-nav">
-            {% if user.is_authenticated %} {% if user.role == 'Admin' %}
+            {% if user.is_authenticated %} {% if is_admin %}
             <li class="nav-item">
-              <a class="nav-link text-danger fw-bold" href="/admin">
+              <a class="nav-link text-danger fw-bold" href="{% url 'admin:index' %}">
                 Quản Trị
               </a>
             </li>
@@ -66,16 +66,16 @@
                 aria-labelledby="navbarDropdown"
               >
                 <li>
-                  <a class="dropdown-item" href="/my-bookings"
+                  <a class="dropdown-item" href="#"
                     >Lịch Sử Đặt Sân</a
                   >
                 </li>
                 <li>
-                  <a class="dropdown-item" href="/favorites">Sân Yêu Thích</a>
+                  <a class="dropdown-item" href="#">Sân Yêu Thích</a>
                 </li>
                 <li><hr class="dropdown-divider" /></li>
                 <li>
-                  <a class="dropdown-item" href="/profile/settings"
+                  <a class="dropdown-item" href="#"
                     >Cập nhật Tài khoản</a
                   >
                 </li>
@@ -92,10 +92,10 @@
 
             {% else %}
             <li class="nav-item">
-              <a class="nav-link" href="/sign-up">Đăng ký</a>
+              <a class="nav-link" href="{% url 'sign_up' %}">Đăng ký</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link btn btn-primary text-white ms-2" href="/login"
+              <a class="nav-link btn btn-primary text-white ms-2" href="{% url 'login' %}"
                 >Đăng nhập</a
               >
             </li>

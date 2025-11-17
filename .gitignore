@@ -23,7 +23,6 @@ db.sqlite3
 Thumbs.db
 *.DS_Store
 
-# Migrations (optional: chỉ ignore if bạn tự sinh lại)
-# **KHÔNG khuyến cáo bỏ qua migrations!**
-# main/migrations/*.py
-# !main/migrations/__init__.py
+# Node.js
+node_modules/
+package-lock.json

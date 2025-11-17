@@ -17,7 +17,7 @@ class SignUpForm(UserCreationForm):
         user.email = self.cleaned_data["email"]
         user.full_name = self.cleaned_data["full_name"]
         user.phone_number = self.cleaned_data.get("phone_number", "")
-        user.role = "User"  # mặc định tài khoản mới là User
+        user.role = "User"
         if commit:
             user.save()
         return user
