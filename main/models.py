@@ -1,18 +1,21 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.core.exceptions import ValidationError
 from datetime import datetime, date
+
 
 class Role(models.TextChoices):
     USER = "User", "User"
     ADMIN = "Admin", "Admin"
     GUEST = "Guest", "Guest"
 
+
 class BookingStatus(models.TextChoices):
     PENDING = "Pending", "Đang chờ xác nhận"
     CONFIRMED = "Confirmed", "Đã xác nhận"
     REJECTED = "Rejected", "Bị từ chối"
     CANCELLED = "Cancelled", "Người dùng hủy"
+
 
 class User(AbstractUser):
     full_name = models.CharField(max_length=255, blank=True)
@@ -26,8 +29,14 @@ class User(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    groups = models.ManyToManyField(Group, related_name="main_user_set", blank=True,
+                                    help_text="The groups this user belongs to.", verbose_name="groups", )
+    user_permissions = models.ManyToManyField(Permission, related_name="main_user_permissions_set",
+                                              blank=True, help_text="Specific permissions for this user.", verbose_name="user permissions", )
+
     def __str__(self):
         return self.username
+
 
 class Facility(models.Model):
     name = models.CharField(max_length=255)
@@ -39,12 +48,14 @@ class Facility(models.Model):
     def __str__(self):
         return self.name
 
+
 class PitchType(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return self.name
+
 
 class Pitch(models.Model):
     facility = models.ForeignKey(
@@ -68,6 +79,7 @@ class Pitch(models.Model):
         facility_name = self.facility.name if self.facility else "No Facility"
         return f"{self.name} - {facility_name}"
 
+
 class Voucher(models.Model):
     code = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True, null=True)
@@ -88,7 +100,7 @@ class Voucher(models.Model):
     def is_valid(self):
         """Check if voucher is valid for use"""
         today = date.today()
-        
+
         if not self.is_active:
             return False
         if self.usage_limit and self.used_count >= self.usage_limit:
@@ -102,21 +114,22 @@ class Voucher(models.Model):
     def __str__(self):
         return self.code
 
+
 class Booking(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="bookings")
     pitch = models.ForeignKey(Pitch, on_delete=models.CASCADE, related_name="bookings")
-    
+
     booking_date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField()
-    
+
     duration_hours = models.DecimalField(max_digits=4, decimal_places=2, blank=True)
     final_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
-    
+
     voucher = models.ForeignKey(Voucher, on_delete=models.SET_NULL, null=True, blank=True)
     note = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=10, choices=BookingStatus.choices, default=BookingStatus.PENDING)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -136,12 +149,25 @@ class Booking(models.Model):
     def calculate_final_price(self):
         """Calculate final price with voucher discount"""
         base_price = self.duration_hours * float(self.pitch.base_price_per_hour)
-        
+
         if self.voucher and self.voucher.is_valid():
             if self.voucher.min_order_value is None or base_price >= float(self.voucher.min_order_value):
                 discount = base_price * (self.voucher.discount_percent / 100)
                 return base_price - discount
         return base_price
+
+    def has_conflict(self):
+        """Check for booking conflicts"""
+        conflicting_bookings = Booking.objects.filter(
+            pitch=self.pitch,
+            booking_date=self.booking_date,
+            status__in=[BookingStatus.PENDING, BookingStatus.CONFIRMED],
+        ).exclude(pk=self.pk)
+        for booking in conflicting_bookings:
+            if (self.start_time < booking.end_time and
+                    self.end_time > booking.start_time):
+                return True
+        return False
 
     def clean(self):
         """Basic validation"""
@@ -158,6 +184,10 @@ class Booking(models.Model):
         elif duration < 1.5:
             errors['end_time'] = "Thời gian tối thiểu là 1 giờ 30 phút."
 
+        # Has conflict validation
+        if self.has_conflict():
+            errors['__all__'] = "Thời gian đặt sân bị trùng với một đặt sân đã tồn tại."
+
         if errors:
             raise ValidationError(errors)
 
@@ -165,16 +195,22 @@ class Booking(models.Model):
         """Auto-calculate duration and price before saving"""
         # Calculate duration
         self.duration_hours = self.calculate_duration()
-        
+
         # Calculate final price
         self.final_price = self.calculate_final_price()
-        
+
         # Run validation
         self.full_clean()
+        if self.voucher and self.status == BookingStatus.CONFIRMED:
+            if self.pk is None:
+                self.voucher.used_count += 1
+                self.voucher.save()
+
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.pitch.name} - {self.user.username} ({self.booking_date})"
+
 
 class Review(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews")
@@ -194,6 +230,7 @@ class Review(models.Model):
     def __str__(self):
         return f"Review by {self.user.username} for {self.pitch.name} - {self.rating} stars"
 
+
 class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
     review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="comments")
@@ -207,6 +244,7 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"Comment by {self.user.username} on review {self.review.id}"
+
 
 class Favorite(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="favorites")
