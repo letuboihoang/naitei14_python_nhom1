@@ -73,7 +73,7 @@
                   >
                 </li>
                 <li>
-                  <a class="dropdown-item" href="#">Sân Yêu Thích</a>
+                  <a class="dropdown-item" href="{% url 'favorite_list' %}">Sân Yêu Thích</a>
                 </li>
                 <li><hr class="dropdown-divider" /></li>
                 <li>
@@ -94,7 +94,7 @@
 
             {% else %}
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'sign_up' %}">Đăng ký</a>
+              <a class="nav-link" href="{% url 'signup' %}">Đăng ký</a>
             </li>
             <li class="nav-item">
               <a class="nav-link btn btn-primary text-white ms-2" href="{% url 'login' %}"

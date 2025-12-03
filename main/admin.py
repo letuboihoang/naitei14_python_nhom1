@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import (
     User, Facility, PitchType, TimeSlot, Pitch, PitchTimeSlot, Voucher,
     Booking, Review, Comment, Favorite
@@ -157,4 +158,4 @@ admin.site.register(Voucher, VoucherAdmin)
 admin.site.register(Booking, BookingAdmin)
 admin.site.register(Review, ReviewAdmin)
 admin.site.register(Comment, CommentAdmin)
-admin.site.register(Favorite, FavoriteAdmin)
+admin.site.register(Favorite, FavoriteAdmin) 
